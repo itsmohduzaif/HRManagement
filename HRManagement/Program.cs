@@ -1,0 +1,242 @@
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using HRManagement.Data;
+using HRManagement.DTOs;
+using HRManagement.Entities;
+using HRManagement.ExceptionHandlers;
+using HRManagement.Helpers;
+using HRManagement.JwtFeatures;
+using HRManagement.Models;
+using HRManagement.SeedConfiguration;
+using HRManagement.Services.Accounts;
+using HRManagement.Services.BlobStorage;
+using HRManagement.Services.Drafts;
+using HRManagement.Services.Emails;
+using HRManagement.Services.Employees;
+using HRManagement.Services.EmployeesExcel;
+using HRManagement.Services.LeaveRequests;
+using HRManagement.Services.LeaveTypes;
+using HRManagement.Services.Notifications;
+using HRManagement.Services.Settings;
+using HRManagement.Services.Timesheet;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.Configuration;
+using System.Text;
+
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+
+//builder.Services.Configure<ApiBehaviorOptions>(options =>
+//{
+//    options.SuppressModelStateInvalidFilter = true;
+//});
+
+// Will upgrade the whole project later to follow this ApiBehaviour (need to deete existing modelstate)
+// th ehttps://www.perplexity.ai/search/using-hrmanagement-dtos-using-gTBta5m1Q9GFRLoSOlX7xA
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .ToList();
+
+        var response = new ApiResponse(false, "Body Validation failed", 400, errors);
+        return new BadRequestObjectResult(response);
+    };
+});
+// The required property will also not allow null or empty strings in the request body and give the error response
+
+
+
+
+
+// Register exception handling services
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<BadRequestExceptionHandler>();
+builder.Services.AddExceptionHandler<NotFoundExceptionHandler>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+
+
+
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ISettingsService, SettingsService>();
+builder.Services.AddScoped<ILeaveTypeService, LeaveTypeService>();
+builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
+builder.Services.AddScoped<IDraftService, DraftService>();
+
+//builder.Services.AddSingleton<JwtHandler>();
+builder.Services.AddSingleton<IJwtHandler, JwtHandler>();
+
+builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
+//builder.Services.AddSingleton<EmailService>();
+
+builder.Services.AddSingleton<IEmailService, EmailService>();
+
+builder.Services.AddScoped<IExpiryNotificationProcessor, ExpiryNotificationProcessor>();
+builder.Services.AddHostedService<ExpiryNotificationService>();
+//builder.Services.AddSingleton<EmployeeExcelExporter>();
+//builder.Services.AddSingleton<EmployeeExcelImporter>();
+builder.Services.AddScoped<IEmployeeExcel, EmployeeExcel>();
+
+//builder.Services.AddTransient<LeaveRequestHelper>();
+builder.Services.AddTransient<ILeaveRequestHelper, LeaveRequestHelper>();
+
+builder.Services.AddScoped<ITimesheetService, TimesheetService>();
+builder.Services.AddScoped<ITimesheetEntryService, TimesheetEntryService>();
+
+
+
+
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddIdentity<User, Role>(opt =>
+{
+    opt.Password.RequiredLength = 7;
+    opt.Password.RequireDigit = true;
+    opt.Password.RequireUppercase = true;
+    opt.Password.RequireLowercase = true;
+    opt.Password.RequireNonAlphanumeric = true;
+    opt.User.RequireUniqueEmail = true;
+    opt.Password.RequiredUniqueChars = 4;
+})
+        .AddEntityFrameworkStores<AppDbContext>()
+        .AddDefaultTokenProviders();   // Adding this for token genration in forgot password
+
+var jwtSettings = builder.Configuration.GetSection("JWTSettings");
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["ValidIssuer"],
+            ValidAudience = jwtSettings["ValidAudience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.GetSection("SecretKey").Value))
+        };
+
+        // Custom error events adding for custom response of 401 and 403 status codes
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                var apiResponse = new ApiResponse(false, "Unauthorized", 401, null);
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                return context.Response.WriteAsJsonAsync(apiResponse);
+            },
+            OnForbidden = context =>
+            {
+                context.Response.StatusCode = 403;
+                context.Response.ContentType = "application/json";
+                var apiResponse = new ApiResponse(false, "Forbidden", 403, null);
+                return context.Response.WriteAsJsonAsync(apiResponse);
+            }
+        };
+
+    });
+
+
+
+
+
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+
+// Configure CORS to allow Angular app on localhost:4200
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp",
+        policy => policy.WithOrigins("http://localhost:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+});
+
+
+
+
+var app = builder.Build();
+
+// Seed data for Users Table if the database is empty.
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<AppDbContext>();
+    var userManager = services.GetRequiredService<UserManager<User>>();
+    var roleManager = services.GetRequiredService<RoleManager<Role>>();
+
+    await DbInitializer.SeedAsync(context, userManager, roleManager);
+}
+
+
+
+
+
+
+// For exception handling 
+app.UseExceptionHandler();
+
+
+// Enable CORS for frontend
+app.UseCors("AllowAngularApp");
+
+
+
+
+// Configure the HTTP request pipeline.
+
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+
+
+///////// Debug Routes if need be: Get https://localhost:7150/debug/routes
+//app.MapGet("/debug/routes", (IEnumerable<EndpointDataSource> endpointSources) =>
+//{
+//    var sb = new StringBuilder();
+
+//    foreach (var endpoint in endpointSources.SelectMany(es => es.Endpoints))
+//    {
+//        if (endpoint is RouteEndpoint routeEndpoint)
+//        {
+//            var methods = endpoint.Metadata
+//                .OfType<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()
+//                .FirstOrDefault()?.HttpMethods;
+
+//            sb.AppendLine($"Route: {routeEndpoint.RoutePattern.RawText}");
+//            sb.AppendLine($"Methods: {(methods == null ? "Any" : string.Join(", ", methods))}");
+//            sb.AppendLine(new string('-', 50));
+//        }
+//    }
+
+//    return Results.Text(sb.ToString());
+//});
+////////
+
+app.MapControllers();
+
+app.Run();
