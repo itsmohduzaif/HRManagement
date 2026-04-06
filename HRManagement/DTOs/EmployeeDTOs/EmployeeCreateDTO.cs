@@ -14,7 +14,7 @@ namespace HRManagement.DTOs.EmployeeDTOs
         public bool IsActive { get; set; }
         public string CreatedBy { get; set; } = string.Empty;
         public string CompanyName { get; set; } = string.Empty;
-
+        public int? ManagerEmployeeId { get; set; }
         // New Properties from Excel file
         public string Status { get; set; } = string.Empty;
         public string EmploymentType { get; set; } = string.Empty;

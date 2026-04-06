@@ -11,7 +11,7 @@
         public DateTime CreatedDate { get; set; }
         public DateTime ModifiedDate { get; set; }
         public string CompanyName { get; set; } = string.Empty;
-
+        public int? ManagerEmployeeId { get; set; }
 
         // New Properties from Excel file
         public string EmployeeName { get; set; } = string.Empty;

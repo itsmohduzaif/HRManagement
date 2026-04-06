@@ -3,6 +3,7 @@
     public class Employee
     {
         public int EmployeeId { get; set; }
+        public int? ManagerEmployeeId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreatedDate { get; set; }
@@ -14,7 +15,6 @@
         public bool IsDraft { get; set; } = false;
 
         public string CompanyName { get; set; } = string.Empty; // asked by prabu to add this property
-
 
 
 

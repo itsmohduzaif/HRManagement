@@ -11,7 +11,7 @@
         public bool IsActive { get; set; }
         public string ModifiedBy { get; set; } = string.Empty;
         public string CompanyName { get; set; } = string.Empty; 
-
+        public int? ManagerEmployeeId { get; set; }
         // New Properties from Excel file
         public string EmployeeName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;

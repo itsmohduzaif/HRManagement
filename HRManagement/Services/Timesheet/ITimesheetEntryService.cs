@@ -16,5 +16,6 @@ namespace HRManagement.Services.Timesheet
         // For Managers
         Task<ApiResponse> GetEntriesForManager(int timesheetId);
         Task<ApiResponse> GetEntryByIdForManager(int timesheetId, int entryId);
+            
     }
 }
