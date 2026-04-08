@@ -19,7 +19,7 @@ namespace HRManagement.Controllers
             _timesheetEntryService = timesheetEntryService;
         }
 
-
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> AddSingleEntry(int timesheetId, [FromBody] TimesheetEntryCreateDTO dto)
         {
@@ -34,7 +34,7 @@ namespace HRManagement.Controllers
 
 
 
-
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetEntries(int timesheetId)
         {
@@ -46,6 +46,7 @@ namespace HRManagement.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        [Authorize]
         [HttpGet("{entryId:int}")]
         public async Task<IActionResult> GetEntryById(int timesheetId, int entryId)
         {
@@ -57,6 +58,7 @@ namespace HRManagement.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        [Authorize]
         [HttpPut("{entryId:int}")]
         public async Task<IActionResult> UpdateEntry(int timesheetId, int entryId, [FromBody] TimesheetEntryUpdateDTO dto)
         {
@@ -68,6 +70,7 @@ namespace HRManagement.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        [Authorize]
         [HttpDelete("{entryId:int}")]
         public async Task<IActionResult> DeleteEntry(int timesheetId, int entryId)
         {

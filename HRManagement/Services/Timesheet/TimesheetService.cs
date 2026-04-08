@@ -128,19 +128,6 @@ namespace HRManagement.Services.Timesheet
 
 
 
-        //public async Task<ApiResponse> GetAllTimesheetsForAdmin()
-        //{
-
-        //    var timesheets = await _context.Timesheets.ToListAsync();
-
-        //    if (!timesheets.Any())
-        //        return new ApiResponse(false, "Timesheet not found", 404, null);
-
-
-        //    return new ApiResponse(true, "My timesheets retrieved", 200, timesheets);
-        //}
-
-
         public async Task<ApiResponse> GetAllTimesheetsForAdmin(GetTimesheetsForAdminFilterDto filters)
         {
             var query = _context.Timesheets.AsQueryable();
@@ -175,16 +162,6 @@ namespace HRManagement.Services.Timesheet
         }
 
 
-        //public async Task<ApiResponse> GetTimesheetByIdForAdmin(int timesheetId)
-        //{
-        //    var timesheet = await _context.Timesheets.FirstOrDefaultAsync(t => t.TimesheetId == timesheetId);
-
-
-        //    if (timesheet == null)
-        //        return new ApiResponse(false, "Timesheet not found or access denied", 404, null);
-
-        //    return new ApiResponse(true, "My timesheets retrieved", 200, timesheet);
-        //}
 
 
 
@@ -264,29 +241,6 @@ namespace HRManagement.Services.Timesheet
 
 
 
-        //public async Task<ApiResponse> GetTimesheetByIdForManager(int timesheetId, string usernameFromClaim)
-        //{
-        //    var manager = await _context.Employees.FirstOrDefaultAsync(e => e.UserName == usernameFromClaim);
-
-        //    if (manager == null)
-        //        return new ApiResponse(false, "Unauthorized", 401, null);
-
-        //    var timesheet = await _context.Timesheets.FirstOrDefaultAsync(t => t.TimesheetId == timesheetId);
-
-        //    if (timesheet == null)
-        //        return new ApiResponse(false, "Timesheet not found or access denied", 404, null);
-
-
-        //    var employee = await _context.Employees.FirstOrDefaultAsync(e => e.EmployeeId == timesheet.EmployeeId);
-        //    if (employee == null)
-        //        return new ApiResponse(false, "Employee of the timesheet id not found", 404, null);
-
-        //    if(employee.ManagerEmployeeId != manager.EmployeeId)
-        //        return new ApiResponse(false, "Access denied", 401, null);
-
-        //    return new ApiResponse(true, "My timesheets retrieved", 200, timesheet);
-        //}
-
 
         public async Task<ApiResponse> ApproveTimesheetByManager(int timesheetId, string usernameFromClaim)
         {
@@ -360,30 +314,6 @@ namespace HRManagement.Services.Timesheet
         }
 
 
-
-        //public async Task<ApiResponse> GetAllPendingTimesheetsForManager()
-        //{
-
-        //    var timesheets = await _context.Timesheets.Where(t => t.Status == TimesheetStatus.Submitted).ToListAsync();
-
-        //    if (!timesheets.Any())
-        //        return new ApiResponse(false, "No Timesheet found", 404, null);
-
-
-        //    return new ApiResponse(true, "Pending Timesheets retrieved", 200, timesheets);
-        //}
-
-        //public async Task<ApiResponse> GetAllApprovedTimesheetsForManager()
-        //{
-        //    var timesheets = await _context.Timesheets.Where(t => t.Status == TimesheetStatus.ManagerApproved).ToListAsync();
-
-        //    if (!timesheets.Any())
-        //        return new ApiResponse(false, "No Timesheet found", 404, null);
-
-
-        //    return new ApiResponse(true, "Pending Timesheets retrieved", 200, timesheets);
-
-        //}
 
     }
 }

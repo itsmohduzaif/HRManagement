@@ -90,14 +90,6 @@ namespace HRManagement.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        //[Authorize(Roles = "Admin")]
-        //[HttpGet("Admin/{timesheetId:int}")]
-        //public async Task<IActionResult> GetTimesheetByIdForAdmin(int timesheetId)
-        //{
-        //    var response = await _timesheetService.GetTimesheetByIdForAdmin(timesheetId);
-        //    return StatusCode(response.StatusCode, response);
-        //}
-
 
         [Authorize(Roles = "Manager")]
         [HttpGet("manager")]
@@ -112,19 +104,7 @@ namespace HRManagement.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        //[Authorize(Roles = "Manager")]
-        //[HttpGet("manager/{timesheetId:int}")]
-        //public async Task<IActionResult> GetTimesheetByIdForManager(int timesheetId)
-        //{
-        //    // Get current logged-in user's username from JWT claims
-        //    string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
-        //    if (string.IsNullOrEmpty(usernameFromClaim))
-        //        return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
-
-        //    var response = await _timesheetService.GetTimesheetByIdForManager(timesheetId, usernameFromClaim);
-        //    return StatusCode(response.StatusCode, response);
-        //}
-
+        
         [Authorize(Roles = "Manager")]
         [HttpPut("{timesheetId:int}/approve")]
         public async Task<IActionResult> ApproveTimesheetByManager(int timesheetId)
@@ -152,22 +132,7 @@ namespace HRManagement.Controllers
         }
 
 
-        //[Authorize(Roles = "Manager")]
-        //[HttpGet("manager/pending")]
-        //public async Task<IActionResult> GetAllPendingTimesheetsForManager()
-        //{
-        //    var response = await _timesheetService.GetAllPendingTimesheetsForManager();
-        //    return StatusCode(response.StatusCode, response);
-        //}
-
-        //[Authorize(Roles = "Manager, Hr")]
-        //[HttpGet("manager/approved")]
-        //public async Task<IActionResult> GetAllApprovedTimesheetsHR()
-        //{
-        //    var response = await _timesheetService.GetAllApprovedTimesheetsForManager();
-        //    return StatusCode(response.StatusCode, response);
-        //}
-
+        
 
     }
 }
