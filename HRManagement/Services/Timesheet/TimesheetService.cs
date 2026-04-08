@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.ExtendedProperties;
 using HRManagement.Data;
 using HRManagement.DTOs;
 using HRManagement.DTOs.TimesheetDTOs;
@@ -84,22 +85,62 @@ namespace HRManagement.Services.Timesheet
 
 
 
-        public async Task<ApiResponse> GetMyTimesheets(string usernameFromClaim)
+        //public async Task<ApiResponse> GetMyTimesheets(string usernameFromClaim)
+        //{
+        //    var employee = await _context.Employees
+        //        .FirstOrDefaultAsync(e => e.UserName == usernameFromClaim);
+
+        //    if (employee == null)
+        //        return new ApiResponse(false, "User not found", 404, null);
+
+        //    var timesheets = await _context.Timesheets.Where(t => t.EmployeeId == employee.EmployeeId).ToListAsync();
+
+        //    if (!timesheets.Any())
+        //        return new ApiResponse(false, "Timesheet not found", 404, null);
+
+
+        //    return new ApiResponse(true, "My timesheets retrieved", 200, timesheets);
+        //}
+
+
+
+        public async Task<ApiResponse> GetMyTimesheets(string usernameFromClaim, GetTimesheetsForEmployeeFilterDto filters)
         {
+            // Step : Get employee by username from claim (to get EmployeeId)
             var employee = await _context.Employees
                 .FirstOrDefaultAsync(e => e.UserName == usernameFromClaim);
 
             if (employee == null)
                 return new ApiResponse(false, "User not found", 404, null);
 
-            var timesheets = await _context.Timesheets.Where(t => t.EmployeeId == employee.EmployeeId).ToListAsync();
-            
-            if (!timesheets.Any())
-                return new ApiResponse(false, "Timesheet not found", 404, null);
 
+            // Step 2: Base query 
+            var query = _context.Timesheets.Where(t => t.EmployeeId == employee.EmployeeId);
 
-            return new ApiResponse(true, "My timesheets retrieved", 200, timesheets);
+            // Step 3: Apply filters
+            if (filters.Status.HasValue)
+                query = query.Where(t => t.Status == filters.Status.Value);
+
+            if (filters.Month.HasValue)
+                query = query.Where(t => t.Month == filters.Month.Value);
+
+            if (filters.Year.HasValue)
+                query = query.Where(t => t.Year == filters.Year.Value);
+
+            if (filters.TimesheetId.HasValue)
+                query = query.Where(t => t.TimesheetId == filters.TimesheetId.Value);
+
+            // Step 4: Check existence
+            if (!await query.AnyAsync())
+                return new ApiResponse(false, "No timesheets found with current filters", 404, null);
+
+            // Step 5: Fetch data
+            var timesheets = await query.ToListAsync();
+
+            return new ApiResponse(true, "Timesheets retrieved successfully", 200, timesheets);
+
         }
+
 
 
 
@@ -165,27 +206,7 @@ namespace HRManagement.Services.Timesheet
 
 
 
-        public async Task<ApiResponse> GetAllTimesheetsForManager(string usernameFromClaim)
-        {
-            var manager = await _context.Employees.FirstOrDefaultAsync(e => e.UserName == usernameFromClaim);
-
-            if (manager == null)
-                return new ApiResponse(false, "Unauthorized", 401, null);
-
-            var employeesUnderManager = await _context.Employees.Where(e => e.ManagerEmployeeId == manager.EmployeeId).Select(e => e.EmployeeId).ToListAsync();
-
-
-
-            var timesheetsOfEmployeesUnderManager = await _context.Timesheets.Where(t => employeesUnderManager.Contains(t.EmployeeId)).ToListAsync();
-
-
-
-            if (!timesheetsOfEmployeesUnderManager.Any())
-                return new ApiResponse(false, "No Timesheets found", 404, null);
-
-
-            return new ApiResponse(true, "My timesheets retrieved", 200, timesheetsOfEmployeesUnderManager);
-        }
+        
 
 
 

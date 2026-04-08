@@ -47,17 +47,17 @@ namespace HRManagement.Controllers
 
         [Authorize]
         [HttpGet]
-        public async Task<IActionResult> GetMyTimesheets()
+        public async Task<IActionResult> GetMyTimesheets(GetTimesheetsForEmployeeFilterDto filters)
         {
             // Get current logged-in user's username from JWT claims
             string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
             if (string.IsNullOrEmpty(usernameFromClaim))
                 return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
 
-            var response = await _timesheetService.GetMyTimesheets(usernameFromClaim);
+            var response = await _timesheetService.GetMyTimesheets(usernameFromClaim, filters);
             return StatusCode(response.StatusCode, response);
         }
-
+        
         [Authorize]
         [HttpGet("{timesheetId:int}")]
         public async Task<IActionResult> GetTimesheetById(int timesheetId)

@@ -9,7 +9,7 @@ namespace HRManagement.Services.Timesheet
 
         Task<ApiResponse> SubmitTimesheet(int timesheetId, string usernameFromClaim);
 
-        Task<ApiResponse> GetMyTimesheets(string usernameFromClaim);
+        Task<ApiResponse> GetMyTimesheets(string usernameFromClaim, GetTimesheetsForEmployeeFilterDto filters);
 
         Task<ApiResponse> GetTimesheetById(int timesheetId, string usernameFromClaim);
 
