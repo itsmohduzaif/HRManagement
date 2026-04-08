@@ -11,7 +11,6 @@ namespace HRManagement.Services.Timesheet
 
         Task<ApiResponse> GetMyTimesheets(string usernameFromClaim, GetTimesheetsForEmployeeFilterDto filters);
 
-        Task<ApiResponse> GetTimesheetById(int timesheetId, string usernameFromClaim);
 
 
 

@@ -58,20 +58,7 @@ namespace HRManagement.Controllers
             return StatusCode(response.StatusCode, response);
         }
         
-        [Authorize]
-        [HttpGet("{timesheetId:int}")]
-        public async Task<IActionResult> GetTimesheetById(int timesheetId)
-        {
-            // Get current logged-in user's username from JWT claims
-            string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
-            if (string.IsNullOrEmpty(usernameFromClaim))
-                return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
-
-            var response = await _timesheetService.GetTimesheetById(timesheetId, usernameFromClaim);
-            return StatusCode(response.StatusCode, response);
-        }
-
-
+        
 
 
 
