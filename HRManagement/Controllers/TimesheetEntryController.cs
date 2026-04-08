@@ -89,17 +89,32 @@ namespace HRManagement.Controllers
         [HttpGet("manager")]
         public async Task<IActionResult> GetEntriesForManager(int timesheetId)
         {
-            var response = await _timesheetEntryService.GetEntriesForManager(timesheetId);
+            string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(usernameFromClaim))
+                return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
+
+            var response = await _timesheetEntryService.GetEntriesForManager(timesheetId, usernameFromClaim);
             return StatusCode(response.StatusCode, response);
         }
 
-        [Authorize(Roles = "Manager")]
-        [HttpGet("{entryId:int}/manager")]
-        public async Task<IActionResult> GetEntryByIdForManager(int timesheetId, int entryId)
+        
+
+
+
+
+
+
+        // For Managers
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin")]
+        public async Task<IActionResult> GetEntriesForAdmin(int timesheetId)
         {
-            var response = await _timesheetEntryService.GetEntryByIdForManager(timesheetId, entryId);
+            var response = await _timesheetEntryService.GetEntriesForAdmin(timesheetId);
             return StatusCode(response.StatusCode, response);
         }
+
+        
+
 
 
 

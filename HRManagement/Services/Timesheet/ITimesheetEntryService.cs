@@ -14,8 +14,10 @@ namespace HRManagement.Services.Timesheet
 
 
         // For Managers
-        Task<ApiResponse> GetEntriesForManager(int timesheetId);
-        Task<ApiResponse> GetEntryByIdForManager(int timesheetId, int entryId);
-            
+        Task<ApiResponse> GetEntriesForManager(int timesheetId, string usernameFromClaim);
+        
+
+        Task<ApiResponse> GetEntriesForAdmin(int timesheetId);
+        
     }
 }

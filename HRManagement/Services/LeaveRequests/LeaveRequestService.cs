@@ -779,7 +779,7 @@ namespace HRManagement.Services.LeaveRequests
 
             if (filters.EmployeeId.HasValue)
                 query = query.Where(r => r.EmployeeId == filters.EmployeeId.Value);
-
+                    
             // Fetch list based on filters and sort by RequestedOn (latest first)
             var allRequests = await query
                 .OrderByDescending(r => r.RequestedOn)

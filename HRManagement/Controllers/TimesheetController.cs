@@ -77,11 +77,64 @@ namespace HRManagement.Controllers
 
         // Endpoints for managers
 
+        
+
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin")]
+        public async Task<IActionResult> GetAllTimesheetsForAdmin(GetTimesheetsForAdminFilterDto filters)
+        {
+            var response = await _timesheetService.GetAllTimesheetsForAdmin(filters);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //[Authorize(Roles = "Admin")]
+        //[HttpGet("Admin/{timesheetId:int}")]
+        //public async Task<IActionResult> GetTimesheetByIdForAdmin(int timesheetId)
+        //{
+        //    var response = await _timesheetService.GetTimesheetByIdForAdmin(timesheetId);
+        //    return StatusCode(response.StatusCode, response);
+        //}
+
+
+        [Authorize(Roles = "Manager")]
+        [HttpGet("manager")]
+        public async Task<IActionResult> GetAllTimesheetsForManager(GetTimesheetsForAdminFilterDto filters)
+        {
+            // Get current logged-in user's username from JWT claims
+            string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(usernameFromClaim))
+                return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
+
+            var response = await _timesheetService.GetAllTimesheetsForManager(filters, usernameFromClaim);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //[Authorize(Roles = "Manager")]
+        //[HttpGet("manager/{timesheetId:int}")]
+        //public async Task<IActionResult> GetTimesheetByIdForManager(int timesheetId)
+        //{
+        //    // Get current logged-in user's username from JWT claims
+        //    string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
+        //    if (string.IsNullOrEmpty(usernameFromClaim))
+        //        return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
+
+        //    var response = await _timesheetService.GetTimesheetByIdForManager(timesheetId, usernameFromClaim);
+        //    return StatusCode(response.StatusCode, response);
+        //}
+
         [Authorize(Roles = "Manager")]
         [HttpPut("{timesheetId:int}/approve")]
         public async Task<IActionResult> ApproveTimesheetByManager(int timesheetId)
         {
-            var response = await _timesheetService.ApproveTimesheetByManager(timesheetId);
+            // Get current logged-in user's username from JWT claims
+            string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(usernameFromClaim))
+                return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
+
+            var response = await _timesheetService.ApproveTimesheetByManager(timesheetId, usernameFromClaim);
             return StatusCode(response.StatusCode, response);
         }
 
@@ -89,45 +142,31 @@ namespace HRManagement.Controllers
         [HttpPost("{timesheetId:int}/reject")]
         public async Task<IActionResult> RejectTimesheetByManager(int timesheetId, [FromBody] RejectTimesheetRequestDTO dto)
         {
-            var response = await _timesheetService.RejectTimesheetByManager(timesheetId, dto);
+            // Get current logged-in user's username from JWT claims
+            string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(usernameFromClaim))
+                return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
+
+            var response = await _timesheetService.RejectTimesheetByManager(timesheetId, dto, usernameFromClaim);
             return StatusCode(response.StatusCode, response);
         }
 
 
+        //[Authorize(Roles = "Manager")]
+        //[HttpGet("manager/pending")]
+        //public async Task<IActionResult> GetAllPendingTimesheetsForManager()
+        //{
+        //    var response = await _timesheetService.GetAllPendingTimesheetsForManager();
+        //    return StatusCode(response.StatusCode, response);
+        //}
 
-
-
-        [Authorize(Roles = "Manager")]
-        [HttpGet("manager")]
-        public async Task<IActionResult> GetAllTimesheetsForManager()
-        {
-            var response = await _timesheetService.GetAllTimesheetsForManager();
-            return StatusCode(response.StatusCode, response);
-        }
-
-        [Authorize(Roles = "Manager")]
-        [HttpGet("manager/{timesheetId:int}")]
-        public async Task<IActionResult> GetTimesheetByIdForManager(int timesheetId)
-        {
-            var response = await _timesheetService.GetTimesheetByIdForManager(timesheetId);
-            return StatusCode(response.StatusCode, response);
-        }
-
-        [Authorize(Roles = "Manager")]
-        [HttpGet("manager/pending")]
-        public async Task<IActionResult> GetAllPendingTimesheetsForManager()
-        {
-            var response = await _timesheetService.GetAllPendingTimesheetsForManager();
-            return StatusCode(response.StatusCode, response);
-        }
-
-        [Authorize(Roles = "Manager, Hr")]
-        [HttpGet("manager/approved")]
-        public async Task<IActionResult> GetAllApprovedTimesheetsHR()
-        {
-            var response = await _timesheetService.GetAllApprovedTimesheetsForManager();
-            return StatusCode(response.StatusCode, response);
-        }
+        //[Authorize(Roles = "Manager, Hr")]
+        //[HttpGet("manager/approved")]
+        //public async Task<IActionResult> GetAllApprovedTimesheetsHR()
+        //{
+        //    var response = await _timesheetService.GetAllApprovedTimesheetsForManager();
+        //    return StatusCode(response.StatusCode, response);
+        //}
 
 
     }

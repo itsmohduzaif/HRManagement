@@ -270,7 +270,42 @@ namespace HRManagement.Services.Timesheet
         }
 
 
-        public async Task<ApiResponse> GetEntriesForManager(int timesheetId)
+        public async Task<ApiResponse> GetEntriesForManager(int timesheetId, string usernameFromClaim)
+        {
+            var manager = await _context.Employees.FirstOrDefaultAsync(e => e.UserName == usernameFromClaim);
+
+            if (manager == null)
+                return new ApiResponse(false, "Unauthorized", 401, null);
+
+            var timesheet = await _context.Timesheets.FirstOrDefaultAsync(t => t.TimesheetId == timesheetId);
+
+            if (timesheet == null)
+                return new ApiResponse(false, "Timesheet not found", 404, null);
+
+
+            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.EmployeeId == timesheet.EmployeeId);
+
+            if (employee == null)
+                return new ApiResponse(false, "Employee not found", 404, null);
+
+
+            if(manager.EmployeeId != employee.ManagerEmployeeId)
+                return new ApiResponse(false, "Unauthorized to view entries of this timesheet", 403, null);
+
+            var entries = await _context.TimesheetEntries.Where(te => te.TimesheetId == timesheetId).ToListAsync();
+
+            if (entries == null || !entries.Any())
+                return new ApiResponse(false, "Timesheet entries not found", 404, null);
+
+            return new ApiResponse(true, "Timesheet entries retrieved successfully", 200, entries);
+        }
+
+        
+
+
+
+
+        public async Task<ApiResponse> GetEntriesForAdmin(int timesheetId)
         {
             var timesheet = await _context.Timesheets.FirstOrDefaultAsync(t => t.TimesheetId == timesheetId);
 
@@ -285,20 +320,7 @@ namespace HRManagement.Services.Timesheet
             return new ApiResponse(true, "Timesheet entries retrieved successfully", 200, entries);
         }
 
-        public async Task<ApiResponse> GetEntryByIdForManager(int timesheetId, int entryId)
-        {
-            var timesheet = await _context.Timesheets.FirstOrDefaultAsync(t => t.TimesheetId == timesheetId);
-
-            if (timesheet == null)
-                return new ApiResponse(false, "Timesheet not found", 404, null);
-
-            var entry = await _context.TimesheetEntries.FirstOrDefaultAsync(te => te.TimesheetId == timesheetId && te.TimesheetEntryId == entryId);
-
-            if (entry == null)
-                return new ApiResponse(false, "Timesheet entries not found", 404, null);
-
-            return new ApiResponse(true, "Timesheet entries retrieved successfully", 200, entry);
-        }
+        
 
     }
 }

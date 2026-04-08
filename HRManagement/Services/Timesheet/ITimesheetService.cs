@@ -18,13 +18,18 @@ namespace HRManagement.Services.Timesheet
 
 
         // Methods for Managers
-        Task<ApiResponse> ApproveTimesheetByManager(int timesheetId);
-        Task<ApiResponse> RejectTimesheetByManager(int timesheetId, RejectTimesheetRequestDTO dto);
+        
 
-        Task<ApiResponse> GetAllTimesheetsForManager();
-        Task<ApiResponse> GetTimesheetByIdForManager(int timesheetId);
-        Task<ApiResponse> GetAllPendingTimesheetsForManager();
-        Task<ApiResponse> GetAllApprovedTimesheetsForManager();
+        Task<ApiResponse> GetAllTimesheetsForAdmin(GetTimesheetsForAdminFilterDto filters);
+        //Task<ApiResponse> GetTimesheetByIdForAdmin(int timesheetId);
+
+        Task<ApiResponse> GetAllTimesheetsForManager(GetTimesheetsForAdminFilterDto filters, string usernameFromClaim);
+        //Task<ApiResponse> GetTimesheetByIdForManager(int timesheetId, string usernameFromClaim);
+        Task<ApiResponse> ApproveTimesheetByManager(int timesheetId, string usernameFromClaim);
+        Task<ApiResponse> RejectTimesheetByManager(int timesheetId, RejectTimesheetRequestDTO dto, string usernameFromClaim);
+
+        //Task<ApiResponse> GetAllPendingTimesheetsForManager();
+        //Task<ApiResponse> GetAllApprovedTimesheetsForManager();
 
         //ApproveTimesheetByManager
         //Task<ApiResponse> GetPendingForManager(int managerId);
