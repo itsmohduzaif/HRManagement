@@ -75,7 +75,7 @@ namespace HRManagement.Controllers
 
 
 
-        // Endpoints for managers
+        // Endpoints for managers and admins
 
         
 
