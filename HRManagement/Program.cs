@@ -9,6 +9,7 @@ using HRManagement.Models;
 using HRManagement.SeedConfiguration;
 using HRManagement.Services.Accounts;
 using HRManagement.Services.BlobStorage;
+using HRManagement.Services.DocumentParse;
 using HRManagement.Services.Drafts;
 using HRManagement.Services.Emails;
 using HRManagement.Services.Employees;
@@ -16,6 +17,7 @@ using HRManagement.Services.EmployeesExcel;
 using HRManagement.Services.LeaveRequests;
 using HRManagement.Services.LeaveTypes;
 using HRManagement.Services.Notifications;
+using HRManagement.Services.Rag;
 using HRManagement.Services.Settings;
 using HRManagement.Services.Timesheet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -96,6 +98,9 @@ builder.Services.AddTransient<ILeaveRequestHelper, LeaveRequestHelper>();
 
 builder.Services.AddScoped<ITimesheetService, TimesheetService>();
 builder.Services.AddScoped<ITimesheetEntryService, TimesheetEntryService>();
+builder.Services.AddSingleton<RagService>();
+builder.Services.AddSingleton<QdrantService>();
+builder.Services.AddScoped<DocumentParser>();
 
 
 
