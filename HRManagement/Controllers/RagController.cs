@@ -1,9 +1,10 @@
 ﻿using HRManagement.DTOs.RagDTOs;
+using HRManagement.Helpers;
 using HRManagement.Services.DocumentParse;
 using HRManagement.Services.Rag;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using HRManagement.Helpers;
 
 namespace HRManagement.Controllers
 {
@@ -20,6 +21,7 @@ namespace HRManagement.Controllers
             _parser = parser;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("upload-documents")]   
         public async Task<IActionResult> UploadDocuments([FromForm] List<IFormFile> files)
         {
@@ -61,6 +63,7 @@ namespace HRManagement.Controllers
             });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("ask-question")]
         public async Task<IActionResult> AskQuestion([FromBody] AskRequestDto request)
         {
@@ -69,24 +72,24 @@ namespace HRManagement.Controllers
             return Ok(new { answer });
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Test()
-        {
-            var answer = await _ragService.Test();
+        //[HttpGet]
+        //public async Task<IActionResult> Test()
+        //{
+        //    var answer = await _ragService.Test();
 
-            return Ok(new { answer });
-        }
+        //    return Ok(new { answer });
+        //}
 
-        [HttpGet("Test-Qdrant")]
-        public async Task<IActionResult> TestQdrant()
-        {
-            //var answer = await _ragService.TestQdrant();
+        //[HttpGet("Test-Qdrant")]
+        //public async Task<IActionResult> TestQdrant()
+        //{
+        //    //var answer = await _ragService.TestQdrant();
 
-            //return Ok(new { answer });
+        //    //return Ok(new { answer });
             
-            await _ragService.TestQdrant();
-            return Ok("NICE");
-        }
+        //    await _ragService.TestQdrant();
+        //    return Ok("NICE");
+        //}
 
         //[HttpPost("upload-documents")]
         //public async Task<IActionResult> UploadDocuments([FromBody] UploadRequestDto request)
