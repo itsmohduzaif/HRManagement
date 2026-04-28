@@ -20,7 +20,7 @@ namespace HRManagement.Controllers
             _parser = parser;
         }
 
-        [HttpPost("upload-documents-with-Files")]   
+        [HttpPost("upload-documents")]   
         public async Task<IActionResult> UploadDocuments([FromForm] List<IFormFile> files)
         {
             if (files == null || files.Count == 0)
