@@ -14,13 +14,13 @@ namespace HRManagement.Services.Rag
     using System;
     using System.Diagnostics.Metrics;
 
-    public class RagService
+    public class RagService : IRagService
     {
         //private readonly List<RagDocument> _documents = new();
         private readonly string _apiKey;
-        private readonly QdrantClient _client;
+        private readonly IQdrantClient _client;
 
-        public RagService(IConfiguration config, QdrantService qdrantService)
+        public RagService(IConfiguration config, IQdrantService qdrantService)
         {
             _apiKey = config["OpenAI:ApiKey"];
             _client = qdrantService.GetClient();
@@ -37,7 +37,7 @@ namespace HRManagement.Services.Rag
         //    for (int i = 0; i < text.Length; i += size)
         //    {
         //        chunks.Add(text.Substring(i, Math.Min(size, text.Length - i)));
-        //    }
+        //    } 
 
         //    return chunks;
         //}

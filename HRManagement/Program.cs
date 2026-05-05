@@ -98,10 +98,9 @@ builder.Services.AddTransient<ILeaveRequestHelper, LeaveRequestHelper>();
 
 builder.Services.AddScoped<ITimesheetService, TimesheetService>();
 builder.Services.AddScoped<ITimesheetEntryService, TimesheetEntryService>();
-builder.Services.AddSingleton<RagService>();
-builder.Services.AddSingleton<QdrantService>();
-builder.Services.AddScoped<DocumentParser>();
-
+builder.Services.AddSingleton<IRagService,RagService>();
+builder.Services.AddSingleton<IQdrantService, QdrantService>();
+builder.Services.AddTransient<IDocumentParser, DocumentParser>();
 
 
 

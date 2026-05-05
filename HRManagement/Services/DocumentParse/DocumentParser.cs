@@ -2,7 +2,7 @@
 
 namespace HRManagement.Services.DocumentParse
 {
-    public class DocumentParser
+    public class DocumentParser : IDocumentParser
     {
         public async Task<string> ExtractTextAsync(IFormFile file)
         {

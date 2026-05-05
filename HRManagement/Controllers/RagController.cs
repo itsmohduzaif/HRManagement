@@ -12,10 +12,10 @@ namespace HRManagement.Controllers
     [ApiController]
     public class RagController : ControllerBase
     {
-        private readonly RagService _ragService;
-        private readonly DocumentParser _parser;
+        private readonly IRagService _ragService;
+        private readonly IDocumentParser _parser;
 
-        public RagController(RagService ragService, DocumentParser parser)
+        public RagController(IRagService ragService, IDocumentParser parser)
         {
             _ragService = ragService;
             _parser = parser;

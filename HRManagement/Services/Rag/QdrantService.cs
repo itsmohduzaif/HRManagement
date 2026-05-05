@@ -3,7 +3,7 @@ using Qdrant.Client.Grpc;
 
 namespace HRManagement.Services.Rag
 {
-    public class QdrantService
+    public class QdrantService : IQdrantService
     {
         private readonly QdrantClient _client;
 
