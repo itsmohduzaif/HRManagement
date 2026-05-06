@@ -5,7 +5,9 @@ using HRManagement.DTOs.EmployeeDTOs;
 using HRManagement.Entities;
 using HRManagement.JwtFeatures;
 using HRManagement.Models;
+using HRManagement.Models.Email;
 using HRManagement.Services.BlobStorage;
+using HRManagement.Services.Emails;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -24,8 +26,9 @@ namespace HRManagement.Services.Employees
         private readonly IBlobStorageService _blobStorageService;
         private readonly string _containerNameForProfilePictures;
         private readonly IMapper _mapper;
+        private readonly IEmailService _emailService;
 
-        public EmployeeService(AppDbContext context, UserManager<User> userManager, IJwtHandler jwtHandler, IBlobStorageService blobStorageService, IConfiguration configuration, IMapper mapper)
+        public EmployeeService(AppDbContext context, UserManager<User> userManager, IJwtHandler jwtHandler, IBlobStorageService blobStorageService, IConfiguration configuration, IMapper mapper, IEmailService emailService)
         {
             _context = context;
             _userManager = userManager;
@@ -33,9 +36,70 @@ namespace HRManagement.Services.Employees
             _blobStorageService = blobStorageService;
             _containerNameForProfilePictures = configuration["AzureBlobStorage:ProfilePictureContainerName"];
             _mapper = mapper;
+            _emailService = emailService;
         }
 
         // Implement the methods defined in the IEmployeeService interface here
+
+
+        public async Task<ApiResponse> InitiateMedicalDocuments(string usernameFromClaim, List<IFormFile> files)
+        {
+            // Find user by username
+            var user = await _userManager.FindByNameAsync(usernameFromClaim);
+            if (user == null)
+                return new ApiResponse(false, "User not found", 404, null);
+
+            // Find related employee record by email or username
+            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserName == usernameFromClaim);
+            if (employee == null)
+                return new ApiResponse(false, "Employee profile not found", 404, null);
+
+            if(string.IsNullOrWhiteSpace(employee.EmiratesIdNumber))
+                return new ApiResponse(false, "Employee does not have Emirates ID number on file. Please update your profile with a valid Emirates ID number before uploading medical documents.", 400, null);
+
+
+            if (!employee.VisaExpiryDate.HasValue)
+            {
+                return new ApiResponse(false, "Visa expiry date not found.", 400, null);
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            if (today >= employee.VisaExpiryDate)
+                return new ApiResponse(false, "Employee's visa has expired. Please contact HR to renew your visa before uploading medical documents.", 400, null);
+
+
+
+            string body = $"Employee {employee.EmployeeName} with Emirates ID {employee.EmiratesIdNumber} has initiated the medical insurance process. Please find the attached medical documents.\n\n" +
+                $"Let us know if any details required.";
+
+            //_emailService.SendEmail("itsuzaifhere@gmail.com", "Medical insurance Initiate", body);
+
+
+            var emailRequest = new EmailRequest
+            {
+                To = new List<string> { "itsuzaifhere@gmail.com" },
+                Cc = new List<string>
+                        {
+                            "venkateshchakaravarthi17@gmail.com",
+                            //"imuzaifmohd@gmail.com"
+                        },
+                Subject = "Medical insurance Initiate",
+                Body = body,
+                IsBodyHtml = false,
+                Attachments = files ?? new List<IFormFile>()
+            };
+
+            await _emailService.SendEmailAsync(emailRequest);
+
+            return new ApiResponse(true, "Medical documents submitted successfully.", 200, null);
+
+        }
+
+
+
+
+
         public async Task<ApiResponse> GetAllEmployees()
         {
             var employees = await _context.Employees.ToListAsync();

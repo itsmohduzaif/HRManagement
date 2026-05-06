@@ -21,6 +21,18 @@ namespace HRManagement.Controllers
             _employeeExcel = employeeExcel;
         }
 
+        [Authorize]
+        [HttpPost("medical-documents/initiate")]
+        public async Task<IActionResult> InitiateMedicalDocuments([FromForm] List<IFormFile> files)
+        {
+            // Get current logged-in user's username from JWT claims
+            string usernameFromClaim = User.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(usernameFromClaim))
+                return Unauthorized(new ApiResponse(false, "User identity not found", 401, null));
+
+            var response = await _employeeService.InitiateMedicalDocuments(usernameFromClaim, files);
+            return StatusCode(response.StatusCode, response);
+        }
 
 
         // Get https://localhost:7150/api/employee/
