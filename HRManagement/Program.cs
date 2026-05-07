@@ -88,7 +88,8 @@ builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
 
 builder.Services.AddScoped<IExpiryNotificationProcessor, ExpiryNotificationProcessor>();
-builder.Services.AddHostedService<ExpiryNotificationService>();
+//builder.Services.AddHostedService<ExpiryNotificationService>();  // Removing this as we are now using a single NotificationBackgroundService for both Expiry and Timesheet Reminder notifications
+builder.Services.AddHostedService<NotificationBackgroundService>();
 //builder.Services.AddSingleton<EmployeeExcelExporter>();
 //builder.Services.AddSingleton<EmployeeExcelImporter>();
 builder.Services.AddScoped<IEmployeeExcel, EmployeeExcel>();
@@ -101,6 +102,7 @@ builder.Services.AddScoped<ITimesheetEntryService, TimesheetEntryService>();
 builder.Services.AddSingleton<IRagService,RagService>();
 builder.Services.AddSingleton<IQdrantService, QdrantService>();
 builder.Services.AddTransient<IDocumentParser, DocumentParser>();
+builder.Services.AddScoped<ITimesheetReminderProcessor, TimesheetReminderProcessor>();
 
 
 
