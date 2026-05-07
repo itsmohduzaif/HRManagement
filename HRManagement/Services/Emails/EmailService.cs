@@ -16,6 +16,8 @@ namespace HRManagement.Services.Emails
             _smtpSettings = smtpSettings.Value;
         }
 
+
+        // If just one to, subject and body, then use this method. For more complex scenarios, use SendEmailAsync with EmailRequest model.
         public void SendEmail(string toEmail, string subject, string body)
         {
             var fromAddress = new MailAddress(_smtpSettings.FromEmail, _smtpSettings.FromName);
@@ -45,7 +47,7 @@ namespace HRManagement.Services.Emails
 
 
 
-
+        // This method supports multiple recipients, CC, HTML body and attachments. It also ensures proper disposal of resources.
         public async Task SendEmailAsync(EmailRequest request)
         {
             var fromAddress = new MailAddress(_smtpSettings.FromEmail, _smtpSettings.FromName);

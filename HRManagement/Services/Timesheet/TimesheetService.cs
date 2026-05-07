@@ -8,6 +8,7 @@ using HRManagement.Entities;
 using HRManagement.Enums;
 using HRManagement.Models;
 using HRManagement.Models.Timesheet;
+using HRManagement.Services.Emails;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 //namespace HRManagement.Models;
@@ -20,11 +21,15 @@ namespace HRManagement.Services.Timesheet
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
         private readonly IMapper _mapper;
+        private readonly string _timesheetSubmittedNotificationURL;
+        private readonly IEmailService _emailService;
 
-        public TimesheetService(AppDbContext context, UserManager<User> userManager, IMapper mapper) {
+        public TimesheetService(AppDbContext context, UserManager<User> userManager, IMapper mapper, IConfiguration configuration, IEmailService emailService) {
             _context = context;
             _userManager = userManager;
             _mapper = mapper;
+            _timesheetSubmittedNotificationURL = configuration["URL:TimesheetSubmittedNotificationURL"];
+            _emailService = emailService;   
         }
 
         public async Task<ApiResponse> CreateTimesheet(string usernameFromClaim, TimesheetCreateDTO dto)
@@ -80,7 +85,28 @@ namespace HRManagement.Services.Timesheet
 
             await _context.SaveChangesAsync();
 
-            return new ApiResponse(true, "Timesheet submitted for manager review", 200, timesheet);
+
+            // Now send an email notification to the manager of the employee (if email exists) about the submission. We can also consider sending notification to HR if needed in the future. For now, we will only send email to manager.
+            var manager = await _context.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employee.ManagerEmployeeId);
+            if (manager == null || manager.WorkEmail==null || manager.WorkEmail == "")
+                return new ApiResponse(true, "Timesheet submitted for manager review, but manager or his email not found to send email notification", 200, timesheet);
+
+
+
+            string toEmail = manager.WorkEmail;
+            string subject = "Employee Timesheet Submission Notification";
+            string body = $"Dear {manager.EmployeeName},\n\n" +
+                          $"Employee {employee.EmployeeName} has submitted a timesheet for {timesheet.Month}/{timesheet.Year}.\n" +
+                          $"Please review and take the necessary action.\n" +
+                          $"Link: {_timesheetSubmittedNotificationURL}.\n\n" +
+                          $"Best regards,\nHR Management System";
+
+
+
+            _emailService.SendEmail(toEmail, subject, body);
+
+
+            return new ApiResponse(true, "Timesheet submitted for manager review and email also sent to manager", 200, timesheet);
         } // end of SubmitTimesheet method
 
 
