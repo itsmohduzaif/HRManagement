@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
 using HRManagement.Data;
 using HRManagement.DTOs;
 using HRManagement.DTOs.EmployeeDTOs;
@@ -8,8 +9,11 @@ using HRManagement.Models;
 using HRManagement.Models.Email;
 using HRManagement.Services.BlobStorage;
 using HRManagement.Services.Emails;
+using HRManagement.Services.Tesseract;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenAI.Chat;
+using System.Text.Json;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 //iii.	Save a Draft Functionality so that user can resume from whenever he/she stopped  
@@ -27,8 +31,10 @@ namespace HRManagement.Services.Employees
         private readonly string _containerNameForProfilePictures;
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
+        private readonly IOcrService _ocrService;
+        private readonly string _apiKey;
 
-        public EmployeeService(AppDbContext context, UserManager<User> userManager, IJwtHandler jwtHandler, IBlobStorageService blobStorageService, IConfiguration configuration, IMapper mapper, IEmailService emailService)
+        public EmployeeService(AppDbContext context, UserManager<User> userManager, IJwtHandler jwtHandler, IBlobStorageService blobStorageService, IConfiguration configuration, IMapper mapper, IEmailService emailService, IOcrService ocrService, IConfiguration config)
         {
             _context = context;
             _userManager = userManager;
@@ -37,9 +43,139 @@ namespace HRManagement.Services.Employees
             _containerNameForProfilePictures = configuration["AzureBlobStorage:ProfilePictureContainerName"];
             _mapper = mapper;
             _emailService = emailService;
+            _ocrService = ocrService;
+            _apiKey = config["OpenAI:ApiKey"];
+
         }
 
         // Implement the methods defined in the IEmployeeService interface here
+
+        private string CleanOcrText(string text)
+        {
+            return text
+                .Replace("\n", " ")
+                .Replace("\r", " ")
+                .Trim();
+        }
+
+
+        public async Task<ApiResponse> ExtractEmployeeObjectFromFiles(List<IFormFile> files)
+        {
+            string context = $"Extracted text from files uploaded by user";
+            foreach (var file in files)
+            {
+                if (file == null || file.Length == 0)
+                    return new ApiResponse(false, "Improper file provided", 400, null);
+
+
+
+                //var allowedTypes = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
+                var allowedTypes = new[] { ".jpg", ".jpeg", ".png"};
+
+                var ext = Path.GetExtension(file.FileName).ToLower();
+
+                if (!allowedTypes.Contains(ext))
+                {
+                    return new ApiResponse(false, "Unsupported file type", 400, null);
+                }
+
+
+
+                var result = _ocrService.ExtractText(file);
+                var cleanedText = CleanOcrText(result.Text);
+                context = context + $"\n\nFile Name: {file.FileName}\nExtracted Text: {cleanedText}\n\n";
+            }
+
+            string dtoClass = "public class SignUpAsAnEmployeeDTO\r\n    {\r\n        [Required(ErrorMessage = \"Username is required.\")]\r\n        public string? UserName { get; set; }\r\n        [Required(ErrorMessage = \"Password is required\")]\r\n        public string? Password { get; set; }\r\n        [Required(ErrorMessage = \"Employee Name is required.\")]\r\n        public string EmployeeName { get; set; } = string.Empty; // new field\r\n        public bool IsActive { get; set; }\r\n        public string CreatedBy { get; set; } = string.Empty;\r\n        public string CompanyName { get; set; } = string.Empty;\r\n\r\n\r\n        // New Properties from Excel file\r\n        public string Status { get; set; } = string.Empty;\r\n        public string EmploymentType { get; set; } = string.Empty;\r\n        public string ContractBy { get; set; } = string.Empty;\r\n        public DateOnly? ContractEndDate { get; set; }\r\n        public string WorkLocation { get; set; } = string.Empty;\r\n        public string Gender { get; set; } = string.Empty;\r\n        public string Nationality { get; set; } = string.Empty;\r\n        public DateOnly? DateOfBirth { get; set; }\r\n        public string MaritalStatus { get; set; } = string.Empty;\r\n        public string EmiratesIdNumber { get; set; } = string.Empty;\r\n        public string PassportNumber { get; set; } = string.Empty;\r\n        public string JobTitle { get; set; } = string.Empty;\r\n        public string Department { get; set; } = string.Empty;\r\n        public string ManagerName { get; set; } = string.Empty;\r\n        public DateOnly? DateOfJoining { get; set; }\r\n\r\n        // Contact & Address\r\n        public string PersonalEmail { get; set; } = string.Empty;\r\n        [Required(ErrorMessage = \"Work Email is required.\")]\r\n        public string WorkEmail { get; set; } = string.Empty;\r\n        public string PersonalPhone { get; set; } = string.Empty;\r\n        public string WorkPhone { get; set; } = string.Empty;\r\n        public string EmergencyContactName { get; set; } = string.Empty;\r\n        public string EmergencyContactRelationship { get; set; } = string.Empty;\r\n        public string EmergencyContactNumber { get; set; } = string.Empty;\r\n        public string CurrentAddress { get; set; } = string.Empty;\r\n        public string PermanentAddress { get; set; } = string.Empty;\r\n        public string CountryOfResidence { get; set; } = string.Empty;\r\n        public string PoBox { get; set; } = string.Empty;\r\n\r\n        // Visa & Legal Documents\r\n        public DateOnly? PassportExpiryDate { get; set; }\r\n        public DateOnly? VisaExpiryDate { get; set; }\r\n        public DateOnly? EmiratesIdExpiryDate { get; set; }\r\n        public DateOnly? LabourCardExpiryDate { get; set; }\r\n        public DateOnly? InsuranceExpiryDate { get; set; }\r\n    }";
+
+
+            string returnString = string.Empty;
+            var employeeDto = new SignUpAsAnEmployeeDTO(); // Initialize with default values in case deserialization fails or returns empty object
+
+
+            //On our frontend website we are filling a form related to the Employee Information.
+            //                    On the backend here we have extracted text from the files uploaded by the user using ocr and we want to fill the Employee Information form fields with the data extracted from the files.
+
+            //                    Let me first show you the DTO class which has the fields of the Employee Information form and then I will show you the extracted text from the files.I want you to fill the fields of the DTO class with the data extracted from the files.
+            //                    And then i want you to create a object from the extracted data so that we can send the information to frontend and the frontend can autofill the form fields whichever we can provide.
+
+
+            try
+            {
+                var client = new ChatClient(model: "gpt-4.1-mini", apiKey: _apiKey);
+
+                
+
+                var prompt = $@"
+                                You are an AI system that extracts structured employee data. You must return ONLY valid JSON.
+                                Rules:
+                                - Output must be strictly JSON (no explanation, no markdown)
+                                - Do NOT guess or infer values that are not explicitly present in the text. If a value is not found in the text, it should be null or empty string or anything as per the DTO class definition in the JSON output . 
+                                - Keys must match DTO properties exactly
+                                - Normalize:
+                                    - Emails to lowercase
+                                    - Dates to YYYY-MM-DD
+                                    - Phone to digits only
+                        
+
+                                Return ONLY valid JSON.
+
+
+                                
+                                
+
+                                So the dto class is:
+                                {dtoClass}
+
+
+                                Lett me show you the context now which has the extracted text from the files, you have to fill the fields of the above DTO class based on this.
+                                
+                                Context:
+                                {context}
+                            ";
+
+
+                var response = await client.CompleteChatAsync(prompt);
+
+                returnString = response.Value.Content[0].Text;
+
+
+                Console.WriteLine($"\n\n\n\nThe returnString is: {returnString}");
+
+
+
+                try
+                {
+                    // Then deserialize
+
+                    employeeDto = JsonSerializer.Deserialize<SignUpAsAnEmployeeDTO>(returnString);
+                    Console.WriteLine($"\n\n\n\nThen deserialized is: {employeeDto}");
+                }
+                catch
+                {
+                    return new ApiResponse(false, "AI response parsing failed", 500, null);
+                }
+
+
+
+            }
+            catch (Exception ex)
+            {
+                if (ex.Message.Contains("insufficient_quota"))
+                {
+                    Console.WriteLine("OpenAI quota exceeded. Please check billing.");
+                }
+
+                Console.WriteLine("Issue in server side!");
+            }
+
+
+
+
+
+            return new ApiResponse (true, "Text extracted successfully", 200, employeeDto);
+        }
+
 
 
         public async Task<ApiResponse> InitiateMedicalDocuments(string usernameFromClaim, List<IFormFile> files)

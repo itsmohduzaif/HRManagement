@@ -12,6 +12,7 @@ using HRManagement.Models;
 using HRManagement.Services.BlobStorage;
 using HRManagement.Services.Emails;
 using HRManagement.Services.Employees;
+using HRManagement.Services.Tesseract;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,8 @@ namespace HRManagement.Tests.Services
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
+        private readonly IOcrService _ocrService;
+        private readonly IConfiguration _config;
 
         public EmployeeServiceTests()
         {
@@ -43,6 +46,8 @@ namespace HRManagement.Tests.Services
             _configuration = A.Fake<IConfiguration>();
             _mapper = A.Fake<IMapper>();
             _emailService = A.Fake<IEmailService>();
+            _ocrService = A.Fake<IOcrService>();
+            _config= A.Fake<IConfiguration>();
         }
 
 
@@ -102,9 +107,9 @@ namespace HRManagement.Tests.Services
             var _context = await GetDatabaseContext();
 
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
-            //Act
+            //Act   
             var result = await EmployeeService.GetAllEmployees();
 
             //Assert
@@ -124,7 +129,7 @@ namespace HRManagement.Tests.Services
             _context.Employees.RemoveRange(_context.Employees);
             await _context.SaveChangesAsync();
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
             //Act
             var result = await EmployeeService.GetAllEmployees();
@@ -143,7 +148,7 @@ namespace HRManagement.Tests.Services
             // Arrange
             var _context = await GetDatabaseContext();
             var existingEmployee = await _context.Employees.FirstAsync();
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
             // Act
             var result = await EmployeeService.GetEmployeeById(existingEmployee.EmployeeId);
             // Assert
@@ -159,7 +164,7 @@ namespace HRManagement.Tests.Services
         {
             // Arrange
             var _context = await GetDatabaseContext();
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
             var nonExistentEmployeeId = 9999; // Assuming this ID does not exist
             // Act
             var result = await EmployeeService.GetEmployeeById(nonExistentEmployeeId);
@@ -234,7 +239,7 @@ namespace HRManagement.Tests.Services
 
 
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
 
             // Act
@@ -311,7 +316,7 @@ namespace HRManagement.Tests.Services
 
 
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
 
             // Act
@@ -367,7 +372,7 @@ namespace HRManagement.Tests.Services
 
 
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
 
             // Act
@@ -433,7 +438,9 @@ namespace HRManagement.Tests.Services
                 _blobStorageService,
                 _configuration,
                 _mapper, 
-                _emailService);
+                _emailService,
+                _ocrService, 
+                _config);
 
             // Act
             var result = await employeeService.UpdateProfileAsync(usernameFromClaim, profileUpdateDto);
@@ -502,7 +509,9 @@ namespace HRManagement.Tests.Services
                 _blobStorageService,
                 _configuration,
                 _mapper, 
-                _emailService);
+                _emailService, 
+                _ocrService, 
+                _config);
 
             // Act
             var result = await employeeService.UpdateProfileAsync(usernameFromClaim, profileUpdateDto);
@@ -564,7 +573,9 @@ namespace HRManagement.Tests.Services
                 _blobStorageService,
                 _configuration,
                 _mapper, 
-                _emailService);
+                _emailService, 
+                _ocrService, 
+                _config);
 
             // Act
             var result = await employeeService.UpdateProfileAsync(usernameFromClaim, profileUpdateDto);
@@ -626,7 +637,9 @@ namespace HRManagement.Tests.Services
                 _blobStorageService,
                 _configuration,
                 _mapper, 
-                _emailService);
+                _emailService, 
+                _ocrService, 
+                _config);
 
             // Act
             var result = await employeeService.UpdateProfileAsync(usernameFromClaim, profileUpdateDto);
@@ -686,7 +699,9 @@ namespace HRManagement.Tests.Services
                 _blobStorageService,
                 _configuration,
                 _mapper, 
-                _emailService);
+                _emailService, 
+                _ocrService, 
+                _config);
 
             // Act
             var result = await employeeService.UpdateProfileAsync(usernameFromClaim, profileUpdateDto);
@@ -749,7 +764,7 @@ namespace HRManagement.Tests.Services
                     .Returns(profile);
 
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
             // Act
 
@@ -781,7 +796,7 @@ namespace HRManagement.Tests.Services
                     .Returns(Task.FromResult<Entities.User?>(null));
 
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
             // Act
 
@@ -816,7 +831,7 @@ namespace HRManagement.Tests.Services
             _context.Employees.RemoveRange(_context.Employees);
             await _context.SaveChangesAsync();
 
-            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService);
+            var EmployeeService = new EmployeeService(_context, _userManager, _jwtHandler, _blobStorageService, _configuration, _mapper, _emailService, _ocrService, _config);
 
             // Act
 

@@ -19,6 +19,7 @@ using HRManagement.Services.LeaveTypes;
 using HRManagement.Services.Notifications;
 using HRManagement.Services.Rag;
 using HRManagement.Services.Settings;
+using HRManagement.Services.Tesseract;
 using HRManagement.Services.Timesheet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -103,7 +104,7 @@ builder.Services.AddSingleton<IRagService,RagService>();
 builder.Services.AddSingleton<IQdrantService, QdrantService>();
 builder.Services.AddTransient<IDocumentParser, DocumentParser>();
 builder.Services.AddScoped<ITimesheetReminderProcessor, TimesheetReminderProcessor>();
-
+builder.Services.AddScoped<IOcrService, TesseractOcrService>();
 
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));

@@ -15,6 +15,7 @@ namespace HRManagement.Services.Employees
         Task<ApiResponse> UploadProfilePictureAsync(string usernameFromClaim, IFormFile file);
         Task<ApiResponse> GetProfileAsync(string username);
         Task<ApiResponse> InitiateMedicalDocuments(string usernameFromClaim, List<IFormFile> files);
+        Task<ApiResponse> ExtractEmployeeObjectFromFiles(List<IFormFile> files);
 
     }
 }

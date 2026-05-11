@@ -21,6 +21,17 @@ namespace HRManagement.Controllers
             _employeeExcel = employeeExcel;
         }
 
+
+        //[Authorize]
+        [HttpPost("Extract-Employee-Object-From-Files")]
+        public async Task<IActionResult> ExtractEmployeeObjectFromFiles([FromForm] List<IFormFile> files)
+        {
+            var response = await _employeeService.ExtractEmployeeObjectFromFiles(files);
+            return StatusCode(response.StatusCode, response);
+        }
+
+
+
         [Authorize]
         [HttpPost("medical-documents/initiate")]
         public async Task<IActionResult> InitiateMedicalDocuments([FromForm] List<IFormFile> files)
@@ -34,6 +45,7 @@ namespace HRManagement.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        
 
         // Get https://localhost:7150/api/employee/
         [Authorize(Roles = "Admin, Super Admin")]
