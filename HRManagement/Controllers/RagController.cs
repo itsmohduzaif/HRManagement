@@ -39,7 +39,7 @@ namespace HRManagement.Controllers
                 {
                     var content = await _parser.ExtractTextAsync(file);
 
-                    content = CleanText.CleanTextFunction(content);
+                    //content = CleanText.CleanTextFunction(content);
 
 
                     if (!string.IsNullOrWhiteSpace(content))

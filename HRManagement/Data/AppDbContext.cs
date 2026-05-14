@@ -1,6 +1,7 @@
 ﻿using HRManagement.Entities;
 using HRManagement.Models;
 using HRManagement.Models.Leaves;
+using HRManagement.Models.Rag;
 using HRManagement.Models.Settings;
 using HRManagement.Models.Timesheet;
 using HRManagement.SeedConfiguration;
@@ -29,6 +30,8 @@ namespace HRManagement.Data
         public DbSet<Timesheet> Timesheets { get; set; }
         public DbSet<TimesheetEntry> TimesheetEntries { get; set; }
 
+
+        public DbSet<RagChunk> RagChunks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

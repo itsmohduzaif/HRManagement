@@ -100,7 +100,7 @@ builder.Services.AddTransient<ILeaveRequestHelper, LeaveRequestHelper>();
 
 builder.Services.AddScoped<ITimesheetService, TimesheetService>();
 builder.Services.AddScoped<ITimesheetEntryService, TimesheetEntryService>();
-builder.Services.AddSingleton<IRagService,RagService>();
+builder.Services.AddScoped<IRagService,RagService>();
 builder.Services.AddSingleton<IQdrantService, QdrantService>();
 builder.Services.AddTransient<IDocumentParser, DocumentParser>();
 builder.Services.AddScoped<ITimesheetReminderProcessor, TimesheetReminderProcessor>();

@@ -6,198 +6,447 @@ using Qdrant.Client;
 namespace HRManagement.Services.Rag
 {
     using DocumentFormat.OpenXml.Office2010.ExcelAc;
+    using HRManagement.Data;
     using HRManagement.Models.Rag;
+    using LangChain.Splitters.Text;
     using Microsoft.Graph.Models;
     using OpenAI.Chat;
     using OpenAI.Embeddings;
     using Qdrant.Client.Grpc;
     using System;
+    using System.Collections;
     using System.Diagnostics.Metrics;
 
     public class RagService : IRagService
     {
         //private readonly List<RagDocument> _documents = new();
         private readonly string _apiKey;
+        private readonly string _qdrantCollectionName;
         private readonly IQdrantClient _client;
+        private readonly AppDbContext _context;
+       
 
-        public RagService(IConfiguration config, IQdrantService qdrantService)
+        public RagService(IConfiguration config, IQdrantService qdrantService, AppDbContext context)
         {
             _apiKey = config["OpenAI:ApiKey"];
+            _qdrantCollectionName = config["Qdrant:CollectionName"];
             _client = qdrantService.GetClient();
+            _context = context;
+            _context = context;
         }
 
         //................................................................................NEW CODE BELOW...............................................
 
 
-        // Charecter based chunking
-        //private List<string> ChunkText(string text, int size = 200)
+        // Sentence based chunking
+        //private List<string> ChunkText(string text, int maxChunkLength = 200)
         //{
+        //    var sentences = text.Split(new[] { ". ", "? ", "! " }, StringSplitOptions.None);
         //    var chunks = new List<string>();
+        //    var currentChunk = "";
 
-        //    for (int i = 0; i < text.Length; i += size)
+        //    foreach (var sentence in sentences)
         //    {
-        //        chunks.Add(text.Substring(i, Math.Min(size, text.Length - i)));
-        //    } 
+        //        if ((currentChunk + sentence).Length > maxChunkLength)
+        //        {
+        //            chunks.Add(currentChunk.Trim());
+        //            currentChunk = sentence;
+        //        }
+        //        else
+        //        {
+        //            currentChunk += sentence + ". ";
+        //        }
+        //    }
+
+        //    if (!string.IsNullOrWhiteSpace(currentChunk))
+        //        chunks.Add(currentChunk.Trim());
 
         //    return chunks;
         //}
 
 
-        // Sentence based chunking
-        private List<string> ChunkText(string text, int maxChunkLength = 200)
-        {
-            var sentences = text.Split(new[] { ". ", "? ", "! " }, StringSplitOptions.None);
-            var chunks = new List<string>();
-            var currentChunk = "";
 
-            foreach (var sentence in sentences)
-            {
-                if ((currentChunk + sentence).Length > maxChunkLength)
+
+
+        private List<string> ChunkText(string text, int chunkSize = 200, int chunkOverlap = 50)
+        {
+
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<string>();
+
+            var splitter = new RecursiveCharacterTextSplitter(
+                chunkSize: chunkSize,
+                chunkOverlap: chunkOverlap,
+                separators: new[]
                 {
-                    chunks.Add(currentChunk.Trim());
-                    currentChunk = sentence;
-                }
-                else
-                {
-                    currentChunk += sentence + ". ";
-                }
+                    "\n\n", // paragraphs
+                    "\n",   // lines
+                    ". ",   // sentences
+                    " ",    // words
+                    ""      // character fallback
+                });
+
+
+
+
+            //var splitter = new RecursiveCharacterTextSplitter(
+            //            chunkSize: 500,
+            //            chunkOverlap: 100);
+
+            var chunks = splitter.SplitText(text);
+
+            foreach (var chunk in chunks)
+            { 
+                Console.WriteLine($"[CHUNK]: {chunk}\n");
+                Console.WriteLine($"[CHUNK Length]: {chunk.Count()}\n");
             }
 
-            if (!string.IsNullOrWhiteSpace(currentChunk))
-                chunks.Add(currentChunk.Trim());
 
-            return chunks;
+            return chunks
+                    .Where(c => !string.IsNullOrWhiteSpace(c))
+                    .Select(c => c.Trim())
+                    .ToList();
+
         }
 
 
 
+        //public async Task AddDocumentsAsync(List<string> docs)
+        //{
+        //    List<string> ListOfChunks = new List<string>();
+
+        //    foreach (var doc in docs)
+        //    {
+        //        Console.WriteLine($"Length: {doc.Length}");
+        //        var chunks = ChunkText(doc);
+
+        //        ListOfChunks.AddRange(chunks);
+
+        //    }
+
+
+
+        //    var collections = await _client.ListCollectionsAsync();
+
+        //    bool exists = collections.Any(c => c == "ragCollection2");
+
+        //    if (!exists)
+        //    {
+        //        await _client.CreateCollectionAsync(
+        //        collectionName: "ragCollection2",
+        //        vectorsConfig: new VectorParams
+        //        {
+        //            Size = 384,
+        //            Distance = Distance.Cosine
+        //        }
+        //        );
+        //    }
+
+
+        //    //...............
+        //    var points = new List<PointStruct>();
+        //    for (int i = 0; i < ListOfChunks.Count(); i++)
+        //    {
+        //        var item = ListOfChunks[i];
+        //        points.Add(new PointStruct
+        //        {
+        //            Id = Guid.NewGuid(),
+        //            Vectors = new Document
+        //            {
+        //                Text = $"{item}",
+        //                Model = "sentence-transformers/all-MiniLM-L6-v2",
+        //            },
+        //            Payload =
+        //            {
+        //                ["ChunkString"] = item,
+        //                //["description"] = item.Item2,
+        //                //["price"] = item.Item3,
+        //                //["category"] = item.Item4,
+        //            },
+        //        });
+        //    }
+
+        //    await _client.UpsertAsync("ragCollection2", points);
+
+        //}
+
+
+
+
+
+        ///...............New Add Documents Method ...............
+
         public async Task AddDocumentsAsync(List<string> docs)
         {
-            List<string> ListOfChunks = new List<string>();
+            List<string> listOfChunks = new List<string>();
 
             foreach (var doc in docs)
             {
                 Console.WriteLine($"Length: {doc.Length}");
+
                 var chunks = ChunkText(doc);
 
-                ListOfChunks.AddRange(chunks);
-
+                listOfChunks.AddRange(chunks);
             }
-
 
 
             var collections = await _client.ListCollectionsAsync();
 
-            bool exists = collections.Any(c => c == "ragCollection2");
+            bool exists = collections.Any(c => c == _qdrantCollectionName);
 
             if (!exists)
             {
                 await _client.CreateCollectionAsync(
-                collectionName: "ragCollection2",
-                vectorsConfig: new VectorParams
-                {
-                    Size = 384,
-                    Distance = Distance.Cosine
-                }
+                    collectionName: _qdrantCollectionName,
+                    vectorsConfig: new VectorParams
+                    {
+                        Size = 384,
+                        Distance = Distance.Cosine
+                    }
                 );
             }
 
 
-            //...............
             var points = new List<PointStruct>();
-            for (int i = 0; i < ListOfChunks.Count(); i++)
+
+
+            foreach (var chunk in listOfChunks)
             {
-                var item = ListOfChunks[i];
-                points.Add(new PointStruct
+                // STEP 1 — Save chunk in SQL Server
+                var ragChunk = new RagChunk
                 {
                     Id = Guid.NewGuid(),
+                    ChunkText = chunk
+                };
+
+                _context.RagChunks.Add(ragChunk);
+
+
+                // STEP 2 — Store only vector + chunkId in Qdrant
+                points.Add(new PointStruct
+                {
+                    Id = ragChunk.Id,
+
                     Vectors = new Document
                     {
-                        Text = $"{item}",
-                        Model = "sentence-transformers/all-MiniLM-L6-v2",
+                        Text = chunk,
+                        Model = "sentence-transformers/all-MiniLM-L6-v2"
                     },
+
                     Payload =
                     {
-                        ["ChunkString"] = item,
-                        //["description"] = item.Item2,
-                        //["price"] = item.Item3,
-                        //["category"] = item.Item4,
-                    },
-                });
+                        ["ChunkId"] = ragChunk.Id.ToString(),
+                        //["ChunkString"] = ragChunk.ChunkText
+                    }
+                 });
             }
 
-            await _client.UpsertAsync("ragCollection2", points);
 
+            // Save SQL records
+            await _context.SaveChangesAsync();
+
+
+            // Save vectors in Qdrant
+            await _client.UpsertAsync(_qdrantCollectionName, points);
         }
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //public async Task<string> AskQuestion(string question)
+        //{
+
+        //    //................ Search the menu items........................
+
+        //    // generate query embedding
+        //    var queryText = question;
+
+        //    // search for similar menu items
+        //    var results = await _client.QueryAsync(
+        //        collectionName: "ragCollection2",
+        //        query: new Document
+        //        {
+        //            Text = queryText,
+        //            Model = "sentence-transformers/all-MiniLM-L6-v2",
+        //        },
+        //        payloadSelector: true,
+        //        limit: 5
+        //    );
+
+
+        //    List<string> strings = new List<string>();
+
+        //    // print results
+        //    foreach (var result in results)
+        //    {
+        //        strings.Add(result.Payload["ChunkString"].StringValue);
+
+        //        Console.WriteLine($"\n\n\nSimilarity Result: {result.Payload["ChunkString"].StringValue}");
+        //        Console.WriteLine($"\nScore: {result.Score}");
+
+        //        //Console.WriteLine($"Item: {result.Payload["item_name"].StringValue}");
+        //        //Console.WriteLine($"Score: {result.Score}");
+        //        //Console.WriteLine($"Description: {result.Payload["description"].StringValue}");
+        //        //Console.WriteLine($"Price: {result.Payload["price"].StringValue}");
+        //        //Console.WriteLine("---");
+        //    }
+        //    // Each result contains:
+
+        //    // Score → similarity(higher = better)
+        //    // Payload → your stored data
+
+        //    try
+        //    {
+        //        var client = new ChatClient(model: "gpt-4.1-mini", apiKey: _apiKey);
+
+        //        var context = string.Join("\n", strings);
+
+        //        var prompt = $@"
+        //                        You are an HR assistant.
+
+        //                        Answer ONLY from the provided context.
+        //                        If the answer is not present, say ""I don't know"".
+
+        //                        Context:
+        //                        {context}
+
+        //                        Question:
+        //                        {question}
+        //                    ";
+
+
+        //        var response = await client.CompleteChatAsync(prompt);
+
+        //        return response.Value.Content[0].Text;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        if (ex.Message.Contains("insufficient_quota"))
+        //        {
+        //            return "OpenAI quota exceeded. Please check billing.";
+        //        }
+
+        //        return "Issue in server side!";
+        //    }
+
+
+        //}
+
+
+
+
+
+
+        ///...............New Ask Question Method ...............
+
         public async Task<string> AskQuestion(string question)
         {
-
-            //................ Search the menu items........................
-
-            // generate query embedding
-            var queryText = question;
-
-            // search for similar menu items
+            // Generate embedding and search Qdrant
             var results = await _client.QueryAsync(
-                collectionName: "ragCollection2",
+                collectionName: _qdrantCollectionName,
                 query: new Document
                 {
-                    Text = queryText,
-                    Model = "sentence-transformers/all-MiniLM-L6-v2",
+                    Text = question,
+                    Model = "sentence-transformers/all-MiniLM-L6-v2"
                 },
                 payloadSelector: true,
                 limit: 5
             );
 
 
-            List<string> strings = new List<string>();
+            List<string> contextChunks = new List<string>();
 
-            // print results
+
             foreach (var result in results)
             {
-                strings.Add(result.Payload["ChunkString"].StringValue);
+                // STEP 1 — Get chunkId from payload
+                var chunkIdString = result.Payload["ChunkId"].StringValue;
 
-                Console.WriteLine($"\n\n\nSimilarity Result: {result.Payload["ChunkString"].StringValue}");
+
+
+                if (!Guid.TryParse(chunkIdString, out Guid chunkId))
+                    continue;
+
+
+                // STEP 2 — Fetch actual chunk from SQL Server
+                var chunk = await _context.RagChunks.FindAsync(chunkId);
+
+                if (chunk == null)
+                    continue;
+
+
+                contextChunks.Add(chunk.ChunkText);
+
+
+                Console.WriteLine($"\n\nChunk: {chunk.ChunkText}");
                 Console.WriteLine($"\nScore: {result.Score}");
-
-                //Console.WriteLine($"Item: {result.Payload["item_name"].StringValue}");
-                //Console.WriteLine($"Score: {result.Score}");
-                //Console.WriteLine($"Description: {result.Payload["description"].StringValue}");
-                //Console.WriteLine($"Price: {result.Payload["price"].StringValue}");
-                //Console.WriteLine("---");
             }
-            // Each result contains:
 
-            // Score → similarity(higher = better)
-            // Payload → your stored data
 
             try
             {
-                var client = new ChatClient(model: "gpt-4.1-mini", apiKey: _apiKey);
+                var client = new ChatClient(
+                    model: "gpt-4.1-mini",
+                    apiKey: _apiKey
+                );
 
-                var context = string.Join("\n", strings);
+                var context = string.Join("\n", contextChunks);
 
                 var prompt = $@"
-                                You are an HR assistant.
+                            You are an HR assistant.
 
-                                Answer ONLY from the provided context.
-                                If the answer is not present, say ""I don't know"".
+                            Answer ONLY from the provided context.
+                            If the answer is not present, say ""I don't know"".
 
-                                Context:
-                                {context}
+                            Context:
+                                { context}
 
-                                Question:
-                                {question}
-                            ";
-
+                            Question:
+                                { question}
+                ";
 
                 var response = await client.CompleteChatAsync(prompt);
 
                 return response.Value.Content[0].Text;
+
+
             }
             catch (Exception ex)
             {
@@ -210,7 +459,24 @@ namespace HRManagement.Services.Rag
             }
 
 
+
+
+
+
+
+
+
+
         }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -225,7 +491,7 @@ namespace HRManagement.Services.Rag
 
 
 
-        
+
 
 
         //public async Task AddDocumentsAsync(List<string> docs)
@@ -258,7 +524,7 @@ namespace HRManagement.Services.Rag
         //    EmbeddingGenerationOptions options = new() { Dimensions = 512 };
         //    OpenAIEmbedding embedding = await client.GenerateEmbeddingAsync(doc, options);
         //    var vector = embedding.ToFloats().ToArray();
-            
+
         //    return vector;
         //}
 
